@@ -3,6 +3,7 @@ Denon Heos notification service.
 """
 import asyncio
 
+import re
 import logging
 import voluptuous as vol
 
@@ -17,7 +18,7 @@ from homeassistant.const import (
     CONF_HOST, CONF_NAME, CONF_USERNAME, CONF_PASSWORD, STATE_PAUSED, STATE_PLAYING, STATE_UNKNOWN, STATE_OFF)
 import homeassistant.helpers.config_validation as cv
 
-REQUIREMENTS = ['https://github.com/Lampy09/aioheos/archive/v0.1.5.zip#aioheos==0.1.5']
+REQUIREMENTS = ['https://github.com/Lampy09/aioheos/archive/v0.1.6.zip#aioheos==0.1.6']
 
 DEFAULT_NAME = 'HEOS Player'
 
@@ -216,5 +217,13 @@ class HeosMediaPlayer(MediaPlayerDevice):
 
     @asyncio.coroutine
     def async_play_media(self, media_type, media_id, **kwargs):
-        if media_type == 'CHANNEL':
-            self.heos.play_favourite(media_id)
+        # URL
+        if re.match(r'http?://', str(media_id)):
+            self.heos.play_content(media_id)
+        # FAVOURITE
+        else:
+            favourites = self.heos.get_favourites()
+            index = int(media_id)
+            if index < len(favourites):
+                mid = favourites[index]['mid']
+                self.heos.play_favourite(mid)
