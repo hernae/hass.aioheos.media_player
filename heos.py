@@ -6,12 +6,13 @@ import asyncio
 import logging
 import voluptuous as vol
 
-from homeassistant.components.media_player import ( # pylint: disable=no-name-in-module
-    PLATFORM_SCHEMA, MEDIA_TYPE_MUSIC,
+from homeassistant.components.media_player import (MediaPlayerDevice, PLATFORM_SCHEMA)
+from homeassistant.components.media_player.const import ( # pylint: disable=no-name-in-module
+    MEDIA_TYPE_MUSIC,
     SUPPORT_VOLUME_MUTE, SUPPORT_VOLUME_SET, # SUPPORT_VOLUME_STEP,
     SUPPORT_STOP, SUPPORT_PAUSE, SUPPORT_PLAY_MEDIA,
     SUPPORT_PREVIOUS_TRACK, SUPPORT_NEXT_TRACK, SUPPORT_SEEK,
-    SUPPORT_PLAY, MediaPlayerDevice)
+    SUPPORT_PLAY)
 from homeassistant.const import (
     CONF_HOST, CONF_NAME, CONF_USERNAME, CONF_PASSWORD, STATE_PAUSED, STATE_PLAYING, STATE_UNKNOWN, STATE_OFF)
 import homeassistant.helpers.config_validation as cv
