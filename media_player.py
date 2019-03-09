@@ -99,7 +99,7 @@ class HeosMediaPlayer(MediaPlayerDevice):
     def state(self):
         self._state = self.heos.get_play_state()
         if self._state == 'stop':
-            return STATE_OFF
+            return STATE_PAUSED
         elif self._state == 'pause':
             return STATE_PAUSED
         elif self._state == 'play':
