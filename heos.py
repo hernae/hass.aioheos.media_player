@@ -3,20 +3,22 @@ Denon Heos notification service.
 """
 import asyncio
 
+import re
 import logging
 import voluptuous as vol
 
-from homeassistant.components.media_player import ( # pylint: disable=no-name-in-module
-    PLATFORM_SCHEMA, MEDIA_TYPE_MUSIC,
+from homeassistant.components.media_player import (MediaPlayerDevice, PLATFORM_SCHEMA)
+from homeassistant.components.media_player.const import ( # pylint: disable=no-name-in-module
+    MEDIA_TYPE_MUSIC,
     SUPPORT_VOLUME_MUTE, SUPPORT_VOLUME_SET, # SUPPORT_VOLUME_STEP,
     SUPPORT_STOP, SUPPORT_PAUSE, SUPPORT_PLAY_MEDIA,
     SUPPORT_PREVIOUS_TRACK, SUPPORT_NEXT_TRACK, SUPPORT_SEEK,
-    SUPPORT_PLAY, MediaPlayerDevice)
+    SUPPORT_PLAY)
 from homeassistant.const import (
-    CONF_HOST, CONF_NAME, STATE_PAUSED, STATE_PLAYING, STATE_UNKNOWN, STATE_OFF)
+    CONF_HOST, CONF_NAME, CONF_USERNAME, CONF_PASSWORD, STATE_PAUSED, STATE_PLAYING, STATE_UNKNOWN, STATE_OFF)
 import homeassistant.helpers.config_validation as cv
 
-REQUIREMENTS = ['https://github.com/easink/aioheos/archive/v0.1.3.zip#aioheos==0.1.3']
+REQUIREMENTS = ['https://github.com/Lampy09/aioheos/archive/v0.1.6.zip#aioheos==0.1.6']
 
 DEFAULT_NAME = 'HEOS Player'
 
@@ -27,6 +29,8 @@ SUPPORT_HEOS = SUPPORT_PLAY | SUPPORT_STOP | SUPPORT_PAUSE | SUPPORT_PLAY_MEDIA 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_HOST): cv.string,
     vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
+    vol.Optional(CONF_USERNAME): cv.string,
+    vol.Optional(CONF_PASSWORD): cv.string,
 })
 
 _LOGGER = logging.getLogger(__name__)
@@ -41,9 +45,11 @@ def async_setup_platform(hass, config, async_add_devices, discover_info=None):
 
     host = config.get(CONF_HOST)
     name = config.get(CONF_NAME)
+    username = config.get(CONF_USERNAME)
+    password = config.get(CONF_PASSWORD)
 
-    hass.loop.set_debug(True)
-    heos = HeosMediaPlayer(hass, host, name)
+    hass.loop.set_debug(False)
+    heos = HeosMediaPlayer(hass, host, name, username, password)
 
     yield from heos.heos.connect(
         host=host,
@@ -59,13 +65,13 @@ class HeosMediaPlayer(MediaPlayerDevice):
     # pylint: disable=too-many-public-methods
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, hass, host, name):
+    def __init__(self, hass, host, name, username, password):
         """Initialize"""
         from aioheos import AioHeos
         if host is None:
             _LOGGER.info('No host provided, will try to discover...')
         self._hass = hass
-        self.heos = AioHeos(loop=hass.loop, host=host, verbose=True)
+        self.heos = AioHeos(loop=hass.loop, host=host, username=username, password=password, verbose=True)
         self._name = name
         self._state = None
 
@@ -208,3 +214,16 @@ class HeosMediaPlayer(MediaPlayerDevice):
             yield from self.async_media_pause()
         else:
             yield from self.async_media_play()
+
+    @asyncio.coroutine
+    def async_play_media(self, media_type, media_id, **kwargs):
+        # URL
+        if re.match(r'http?://', str(media_id)):
+            self.heos.play_content(media_id)
+        # FAVOURITE
+        else:
+            favourites = self.heos.get_favourites()
+            index = int(media_id)
+            if index < len(favourites):
+                mid = favourites[index]['mid']
+                self.heos.play_favourite(mid)
